@@ -56,3 +56,13 @@ class Database:
         self.cursor.execute(query)
         record = self.cursor.fetchall()
         return record
+
+    def insert_orders(self, order_id, customer_id, product_id, order_date):
+        query = f"INSERT OR REPLACE INTO orders (id, customer_id, product_id, order_date) VALUES ({order_id}, '{customer_id}', '{product_id}', datetime('{order_date}'))"
+        self.cursor.execute(query)
+        self.connection.commit()
+
+    def delete_order_by_id(self, order_id):
+        query = f"DELETE FROM orders WHERE id = {order_id}"
+        self.cursor.execute(query)
+        self.connection.commit()

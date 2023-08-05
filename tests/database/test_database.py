@@ -1,5 +1,8 @@
 import pytest
 from modules.common.database import Database
+from sqlite3 import OperationalError
+from sqlite3 import IntegrityError
+import datetime
 
 
 @pytest.mark.database
@@ -74,6 +77,56 @@ def test_detailed_orders():
 def test_product_insert():
     db = Database()
     db.insert_product(5, "цукерки", "мятні", 15.25)
-    water_qnt = db.select_product_qnt_by_id(5)
+    sweets_qnt = db.select_product_qnt_by_id(5)
+    db.delete_product_by_id(5)
 
-    assert water_qnt[0][0] == 15.25
+    assert sweets_qnt[0][0] == 15.25
+
+
+@pytest.mark.database
+def test_product_insert1():
+    db = Database()
+    try:
+        db.insert_product(32.76, "цукерки", "золотий ключик", 7)
+    except IntegrityError as dberror:
+        assert dberror.args[0] == "datatype mismatch"
+
+
+@pytest.mark.database
+def test_product_insert_error():
+    db = Database()
+    try:
+        db.insert_product(6, "цукерки", "не існуючі", "три")
+    except OperationalError as dberror:
+        sweets = db.select_product_qnt_by_id(6)
+        assert len(sweets) == 0
+        assert dberror.args[0] == "no such column: три"
+
+
+@pytest.mark.database
+def test_product_insert_error_raises():
+    db = Database()
+    with pytest.raises(OperationalError) as dberror:
+        db.insert_product(6, "цукерки", "не існуючі", "три")
+    assert dberror.value.args[0] == "no such column: три"
+
+
+@pytest.mark.database
+def test_order_insert():
+    db = Database()
+    db.insert_orders(2, 1, 1, "2023-08-03")
+    show = db.get_detailed_orders()
+    db.delete_order_by_id(2)
+
+    assert show[1][4] == "2023-08-03 00:00:00"
+
+
+@pytest.mark.database
+def test_order_insert_date_wrong_format():
+    db = Database()
+    db.insert_orders(2, 1, 1, "2023-25-15")
+    show = db.get_detailed_orders()
+    db.delete_order_by_id(2)
+
+    print(show)
+    assert show[1][4] == None
